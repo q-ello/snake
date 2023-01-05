@@ -16,6 +16,7 @@ class Snake {
     constructor(body) {
         this.body = body;
         this.addLater = [];
+        this._speed = 500;
     }
 
     draw() {
@@ -34,22 +35,20 @@ class Snake {
         const oldHead = this.body[0];
         cells[oldHead[1] * 10 + oldHead[0]].classList.remove("snakeHead");
 
-        let newHead;
-        if (direction === 1 || direction === -1) {
-            newHead = [oldHead[0] + direction, oldHead[1]];
-            if (newHead[0] === 10) newHead[0] = 0;
-            if (newHead[0] === -1) newHead[0] = 9;
-        }
-        else {
-            newHead = [oldHead[0], oldHead[1] + direction/10];
-            if (newHead[1] === 10) newHead[1] = 0;
-            if (newHead[1] === -1) newHead[1] = 9;
-        }
-
         if (tail === this.addLater[0]) {
             this.addLater.shift();
             this.grow(tail);
         } else cells[tail[1] * 10 + tail[0]].classList.remove("snake");
+
+        let newHead;
+        if (direction === 1 || direction === -1) {
+            newHead = [oldHead[0] + direction, oldHead[1]];
+            if (newHead[0] === 10 || newHead[0] === -1) return false;
+        }
+        else {
+            newHead = [oldHead[0], oldHead[1] + direction/10];
+            if (newHead[1] === 10 || newHead[1] === -1) return false;
+        }
 
         if (this.checkBump(newHead)){
             return false;
@@ -66,6 +65,10 @@ class Snake {
 
 
         return newHead;
+    }
+
+    accelerate(){
+        this._speed -= 10;
     }
 
     checkApple(cell){
@@ -88,6 +91,7 @@ class Snake {
             cells[cell[1] * 10 + cell[0]].classList.remove("snake");
         });
         this.body = [[5, 4], [4, 4]];
+        this._speed = 500;
     }
 }
 
@@ -139,16 +143,12 @@ class Game {
         this.apple.draw();
     }
     play() {
-
-        overlay.style.display = "none";
-
-        restart.style.display = "none";
-
+        
         let interval = setInterval(() => {
             let newHead = this.snake.move(this.direction);
 
             if (newHead === true){
-                this.snakeEatedApple();
+                this.snakeEatedApple(interval);
             }
             
             if (this.score._score === 98) {
@@ -161,7 +161,7 @@ class Game {
                 this.end(interval);
             }
 
-        }, 500);
+        }, this.snake._speed);
 
         document.addEventListener('keyup', (event) => {
             if (event.code === "ArrowLeft" && this.direction !== 1) this.direction = -1;
@@ -171,12 +171,15 @@ class Game {
         });
     }
 
-    snakeEatedApple(){
+    snakeEatedApple(interval){
         this.apple.destroy();
         this.apple = new Apple(randomCell(10));
         this.score.increase();
         this.apple.draw();
         this.score.draw();
+        this.snake.accelerate();
+        clearInterval(interval);
+        this.play();
     }
 
     lose() {
@@ -218,7 +221,7 @@ field.innerHTML = cellsString;
 
 field.appendChild(overlay);
 
-overlay.innerText = "Click to start playing";
+overlay.innerText += "Click to start playing";
 
 let cells = document.querySelectorAll('.cell');
 
@@ -231,10 +234,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let game = new Game;
     game.createBoard();
     field.addEventListener('click', () => {
-        game.play()
+        overlay.style.display = "none";
+        game.play();
     }, {once: true});
 
     restart.addEventListener('click', () => {
+        overlay.style.display = "none";
         restart.style.display = "none";
         game.reset();
         game.createBoard();

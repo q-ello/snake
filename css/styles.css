@@ -74,3 +74,8 @@ body{
     text-align: center;
     line-height: 40px;
 }
+
+.input::placeholder{
+    font-size: 20px;
+    color: rgb(57, 20, 20);
+}
